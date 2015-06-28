@@ -149,6 +149,7 @@ define CFG_MAKE_TOOLCHAIN
        CPP_$(1)=$(CROSS_PREFIX_$(1))$(CPP_$(1))
        AR_$(1)=$(CROSS_PREFIX_$(1))$(AR_$(1))
        RUSTC_CROSS_FLAGS_$(1)=-C linker=$$(call FIND_COMPILER,$$(CC_$(1))) \
+           -C objcopy=$$(call FIND_COMPILER,$$(OBJCOPY_$(1))) \
            -C ar=$$(call FIND_COMPILER,$$(AR_$(1))) $(RUSTC_CROSS_FLAGS_$(1))
 
        RUSTC_FLAGS_$(1)=$$(RUSTC_CROSS_FLAGS_$(1)) $(RUSTC_FLAGS_$(1))

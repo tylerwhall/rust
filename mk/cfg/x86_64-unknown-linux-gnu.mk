@@ -3,6 +3,7 @@ CC_x86_64-unknown-linux-gnu=$(CC)
 CXX_x86_64-unknown-linux-gnu=$(CXX)
 CPP_x86_64-unknown-linux-gnu=$(CPP)
 AR_x86_64-unknown-linux-gnu=$(AR)
+OBJCOPY_x86_64-unknown-linux-gnu=$(OBJCOPY)
 CFG_LIB_NAME_x86_64-unknown-linux-gnu=lib$(1).so
 CFG_STATIC_LIB_NAME_x86_64-unknown-linux-gnu=lib$(1).a
 CFG_LIB_GLOB_x86_64-unknown-linux-gnu=lib$(1)-*.so

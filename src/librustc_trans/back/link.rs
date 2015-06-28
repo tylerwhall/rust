@@ -849,6 +849,33 @@ fn link_natively(sess: &Session, trans: &CrateTranslation, dylib: bool,
     }
 }
 
+fn fix_meta_section_attributes(sess: &Session, meta_name: &PathBuf) {
+    // First, fix up the note section attributes. We want the SHF_ALLOC and
+    // SHF_WRITE flags to be unset so the section will get placed near the
+    // end along with the debug info. This allows the section to be
+    // stripped later without renumbering important sections that contain
+    // code and data.
+    let mut o_cmd = Command::new(&sess.opts.cg.objcopy);
+    o_cmd.arg("--rename-section")
+         .arg(".note.rustc=.note.rustc,contents,noload,readonly")
+         .arg(&meta_name);
+    // Invoke objcopy
+    info!("{:?}", o_cmd);
+    match o_cmd.status() {
+        Ok(exitstatus) => {
+            if !exitstatus.success() {
+                sess.err(&format!("objcopy failed with exit code {:?}", exitstatus.code()));
+                sess.note(&format!("{:?}", &o_cmd));
+            }
+        },
+        Err(exitstatus) => {
+            sess.err(&format!("objcopy failed: {}", exitstatus));
+            sess.note(&format!("{:?}", &o_cmd));
+        }
+    }
+    sess.abort_if_errors();
+}
+
 fn link_args(cmd: &mut Command,
              sess: &Session,
              dylib: bool,
@@ -901,7 +928,10 @@ fn link_args(cmd: &mut Command,
     // executable. This metadata is in a separate object file from the main
     // object file, so we link that in here.
     if dylib {
-        cmd.arg(&obj_filename.with_extension("metadata.o"));
+        let meta_name = obj_filename.with_extension("metadata.o");
+
+        fix_meta_section_attributes(sess, &meta_name);
+        cmd.arg(&meta_name);
     }
 
     if t.options.is_like_osx {

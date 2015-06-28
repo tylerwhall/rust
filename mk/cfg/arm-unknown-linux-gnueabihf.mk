@@ -4,6 +4,7 @@ CC_arm-unknown-linux-gnueabihf=gcc
 CXX_arm-unknown-linux-gnueabihf=g++
 CPP_arm-unknown-linux-gnueabihf=gcc -E
 AR_arm-unknown-linux-gnueabihf=ar
+OBJCOPY_arm-unknown-linux-gnueabihf=objcopy
 CFG_LIB_NAME_arm-unknown-linux-gnueabihf=lib$(1).so
 CFG_STATIC_LIB_NAME_arm-unknown-linux-gnueabihf=lib$(1).a
 CFG_LIB_GLOB_arm-unknown-linux-gnueabihf=lib$(1)-*.so

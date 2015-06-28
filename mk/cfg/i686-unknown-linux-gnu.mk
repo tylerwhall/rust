@@ -3,6 +3,7 @@ CC_i686-unknown-linux-gnu=$(CC)
 CXX_i686-unknown-linux-gnu=$(CXX)
 CPP_i686-unknown-linux-gnu=$(CPP)
 AR_i686-unknown-linux-gnu=$(AR)
+OBJCOPY_i686-unknown-linux-gnu=$(OBJCOPY)
 CFG_LIB_NAME_i686-unknown-linux-gnu=lib$(1).so
 CFG_STATIC_LIB_NAME_i686-unknown-linux-gnu=lib$(1).a
 CFG_LIB_GLOB_i686-unknown-linux-gnu=lib$(1)-*.so
