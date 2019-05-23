@@ -21,6 +21,8 @@ compiler_builtins = { version = "0.1.32" }
 profiler_builtins = { path = "../profiler_builtins", optional = true }
 unwind = { path = "../unwind" }
 hashbrown = { version = "0.8.1", default-features = false, features = ['rustc-dep-of-std'] }
+zephyr-sys = { path = "../../../zephyr-sys" }
+zephyr-core = { path = "../../../zephyr-core", features = ["rustc-dep-of-std"]  }
 
 # Dependencies of the `backtrace` crate
 addr2line = { version = "0.13.0", optional = true, default-features = false }
