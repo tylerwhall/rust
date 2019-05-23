@@ -48,7 +48,8 @@ pub unsafe extern fn __rust_start_panic(_payload: usize) -> u32 {
         libc::abort();
     }
 
-    #[cfg(any(windows,
+    #[cfg(any(target_os = "zephyr",
+              windows,
               all(target_arch = "wasm32", not(target_os = "emscripten"))))]
     unsafe fn abort() -> ! {
         core::intrinsics::abort();
