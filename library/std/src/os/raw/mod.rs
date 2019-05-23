@@ -77,6 +77,7 @@ type_alias! { "char.md", c_char = u8, NonZero_c_char = NonZeroU8;
         any(target_arch = "aarch64", target_arch = "arm", target_arch = "powerpc")
     ),
     all(target_os = "openbsd", target_arch = "aarch64"),
+    all(target_os = "zephyr", target_arch = "aarch64"),
     all(
         target_os = "vxworks",
         any(
@@ -120,6 +121,7 @@ type_alias! { "char.md", c_char = i8, NonZero_c_char = NonZeroI8;
         any(target_arch = "aarch64", target_arch = "arm", target_arch = "powerpc")
     ),
     all(target_os = "openbsd", target_arch = "aarch64"),
+    all(target_os = "zephyr", target_arch = "aarch64"),
     all(
         target_os = "vxworks",
         any(
