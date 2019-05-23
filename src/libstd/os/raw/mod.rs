@@ -25,6 +25,7 @@
                                         target_arch = "arm",
                                         target_arch = "powerpc")),
           all(target_os = "openbsd", target_arch = "aarch64"),
+          all(target_os = "zephyr", target_arch = "aarch64"),
           all(target_os = "fuchsia", target_arch = "aarch64")))]
 #[stable(feature = "raw_os", since = "1.1.0")] pub type c_char = u8;
 #[doc(include = "os/raw/char.md")]
@@ -44,6 +45,7 @@
                                             target_arch = "arm",
                                             target_arch = "powerpc")),
               all(target_os = "openbsd", target_arch = "aarch64"),
+              all(target_os = "zephyr", target_arch = "aarch64"),
               all(target_os = "fuchsia", target_arch = "aarch64"))))]
 #[stable(feature = "raw_os", since = "1.1.0")] pub type c_char = i8;
 #[doc(include = "os/raw/schar.md")]
