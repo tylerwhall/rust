@@ -103,6 +103,12 @@ mod c_char_definition {
         //   special cases for L4Re below.
         //   https://github.com/rust-lang/rust/pull/132975#issuecomment-2484645240
         if #[cfg(all(
+            // Preserve the Zephyr ABI used by its libc port.
+            any(
+                not(target_os = "zephyr"),
+                target_arch = "aarch64",
+                target_arch = "riscv64",
+            ),
             not(windows),
             not(target_vendor = "apple"),
             any(
