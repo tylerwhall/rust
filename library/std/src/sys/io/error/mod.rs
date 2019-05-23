@@ -39,6 +39,10 @@ cfg_select! {
         mod xous;
         pub use xous::*;
     }
+    target_os = "zephyr" => {
+        mod zephyr;
+        pub use zephyr::*;
+    }
     any(
         target_os = "vexos",
         target_family = "wasm",

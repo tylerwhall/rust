@@ -60,6 +60,10 @@ cfg_select! {
         mod zkvm;
         pub use self::zkvm::*;
     }
+    target_os = "zephyr" => {
+        mod zephyr;
+        pub use self::zephyr::*;
+    }
     _ => {
         mod unsupported;
         pub use self::unsupported::*;
