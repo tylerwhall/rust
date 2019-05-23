@@ -56,6 +56,9 @@ cfg_if::cfg_if! {
     } else if #[cfg(target_os = "teeos")] {
         mod teeos;
         pub use self::teeos::*;
+    } else if #[cfg(target_os = "zephyr")] {
+        mod zephyr;
+        pub use self::zephyr::*;
     } else {
         mod unsupported;
         pub use self::unsupported::*;
