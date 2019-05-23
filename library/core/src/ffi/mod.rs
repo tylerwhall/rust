@@ -156,6 +156,12 @@ mod c_char_definition {
         //   architecture defaults). As we only have a target for userspace apps so there are no
         //   special cases for L4RE below.
         if #[cfg(all(
+            // Preserve the Zephyr ABI used by its libc port.
+            any(
+                not(target_os = "zephyr"),
+                target_arch = "aarch64",
+                target_arch = "riscv64",
+            ),
             not(windows),
             not(target_vendor = "apple"),
             any(
