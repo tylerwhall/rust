@@ -28,7 +28,7 @@ pub mod wtf8;
 
 cfg_if::cfg_if! {
     if #[cfg(any(
-        all(unix, not(target_os = "l4re")),
+        all(unix, not(target_os = "l4re"), not(target_os = "zephyr")),
         windows,
         target_os = "hermit",
         target_os = "solid_asp3",
