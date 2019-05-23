@@ -132,6 +132,10 @@ mod c_char_definition {
                 target_os = "fuchsia",
                 any(target_arch = "aarch64", target_arch = "riscv64")
             ),
+            all(
+                target_os = "zephyr",
+                any(target_arch = "aarch64", target_arch = "riscv64")
+            ),
             all(target_os = "nto", target_arch = "aarch64"),
             target_os = "horizon"
         ))] {
