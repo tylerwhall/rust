@@ -42,6 +42,7 @@ mod tests;
         any(target_arch = "aarch64", target_arch = "arm", target_arch = "powerpc")
     ),
     all(target_os = "openbsd", target_arch = "aarch64"),
+    all(target_os = "zephyr", target_arch = "aarch64"),
     all(
         target_os = "vxworks",
         any(
@@ -86,6 +87,7 @@ pub type c_char = u8;
         any(target_arch = "aarch64", target_arch = "arm", target_arch = "powerpc")
     ),
     all(target_os = "openbsd", target_arch = "aarch64"),
+    all(target_os = "zephyr", target_arch = "aarch64"),
     all(
         target_os = "vxworks",
         any(
