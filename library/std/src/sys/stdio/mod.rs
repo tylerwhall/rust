@@ -34,6 +34,9 @@ cfg_if::cfg_if! {
     } else if #[cfg(target_os = "zkvm")] {
         mod zkvm;
         pub use zkvm::*;
+    } else if #[cfg(target_os = "zephyr")] {
+        mod zephyr;
+        pub use zephyr::*;
     } else {
         mod unsupported;
         pub use unsupported::*;
