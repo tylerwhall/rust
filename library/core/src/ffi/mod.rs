@@ -143,6 +143,7 @@ mod c_char_definition {
                     target_arch = "powerpc"
                 )
             ),
+            all(target_os = "zephyr", target_arch = "aarch64"),
             all(target_os = "fuchsia", target_arch = "aarch64"),
             target_os = "horizon"
         ))] {
