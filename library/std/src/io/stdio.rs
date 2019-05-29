@@ -1,4 +1,5 @@
 #![cfg_attr(test, allow(unused))]
+#![allow(missing_docs)]
 
 #[cfg(test)]
 mod tests;
@@ -486,12 +487,16 @@ impl fmt::Debug for StdinLock<'_> {
 /// [`lock`]: Stdout::lock
 /// [`io::stdout`]: stdout
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub struct Stdout {
     // FIXME: this should be LineWriter or BufWriter depending on the state of
     //        stdout (tty or not). Note that if this is not line buffered it
     //        should also flush-on-panic or some form of flush-on-abort.
     inner: Pin<&'static ReentrantMutex<RefCell<LineWriter<StdoutRaw>>>>,
 }
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub struct Stdout(StdoutRaw);
 
 /// A locked reference to the [`Stdout`] handle.
 ///
@@ -549,6 +554,7 @@ static STDOUT: SyncOnceCell<ReentrantMutex<RefCell<LineWriter<StdoutRaw>>>> = Sy
 /// }
 /// ```
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn stdout() -> Stdout {
     Stdout {
         inner: Pin::static_ref(&STDOUT).get_or_init_pin(
@@ -556,6 +562,11 @@ pub fn stdout() -> Stdout {
             |mutex| unsafe { mutex.init() },
         ),
     }
+}
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub fn stdout() -> Stdout {
+    Stdout(stdout_raw())
 }
 
 pub fn cleanup() {
@@ -594,8 +605,14 @@ impl Stdout {
     /// }
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(not(target_os = "zephyr"))]
     pub fn lock(&self) -> StdoutLock<'_> {
         StdoutLock { inner: self.inner.lock() }
+    }
+    #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(target_os = "zephyr")]
+    pub fn lock(&self) -> &Self {
+        self
     }
 }
 
@@ -607,6 +624,7 @@ impl fmt::Debug for Stdout {
 }
 
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 impl Write for Stdout {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         (&*self).write(buf)
@@ -658,6 +676,25 @@ impl Write for &Stdout {
     }
 }
 
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+impl Write for Stdout {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+        self.0.write_vectored(bufs)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.0.write_all(buf)
+    }
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> io::Result<()> {
+        self.0.write_fmt(args)
+    }
+}
 #[stable(feature = "rust1", since = "1.0.0")]
 impl Write for StdoutLock<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -944,7 +981,10 @@ where
 #[doc(hidden)]
 #[cfg(not(test))]
 pub fn _print(args: fmt::Arguments<'_>) {
+    #[cfg(not(target_os = "zephyr"))]
     print_to(args, stdout, "stdout");
+    #[cfg(target_os = "zephyr")]
+    stdout().write_fmt(args).expect("stdout failed");
 }
 
 #[unstable(
