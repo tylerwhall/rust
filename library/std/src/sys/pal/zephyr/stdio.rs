@@ -29,7 +29,7 @@ impl io::Write for Stdout {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 
