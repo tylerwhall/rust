@@ -390,9 +390,8 @@ pub fn begin_panic_handler(info: &PanicInfo<'_>) -> ! {
 #[cfg_attr(not(feature="panic_immediate_abort"),inline(never))]
 #[cold]
 pub fn begin_panic<M: Any + Send>(msg: M, file_line_col: &(&'static str, u32, u32)) -> ! {
-    if cfg!(feature = "panic_immediate_abort") {
-        unsafe { intrinsics::abort() }
-    }
+    ::zephyr::any::k_str_out("Zephyr panic test message\n");
+    unsafe { intrinsics::abort() }
 
     // Note that this should be the only allocation performed in this code path.
     // Currently this means that panic!() on OOM will invoke this code path,
