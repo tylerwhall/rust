@@ -27,6 +27,9 @@ pub mod thread;
 pub mod thread_local;
 pub mod time;
 
+// Could import user-only here with a feature
+use ::zephyr::any as zephyr;
+
 pub mod env {
     pub mod os {
         pub const FAMILY: &str = "zephyr";
