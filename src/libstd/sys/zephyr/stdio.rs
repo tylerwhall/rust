@@ -5,7 +5,9 @@ pub struct Stdout(());
 pub struct Stderr(());
 
 impl Stdin {
-    pub fn new() -> io::Result<Stdin> { Ok(Stdin(())) }
+    pub fn new() -> io::Result<Stdin> {
+        Ok(Stdin(()))
+    }
 }
 
 impl io::Read for Stdin {
@@ -19,12 +21,15 @@ impl io::Read for Stdin {
 }
 
 impl Stdout {
-    pub fn new() -> io::Result<Stdout> { Ok(Stdout(())) }
+    pub fn new() -> io::Result<Stdout> {
+        Ok(Stdout(()))
+    }
 }
 
 impl io::Write for Stdout {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unimplemented!()
+        super::zephyr::k_str_out_raw(buf);
+        Ok(buf.len())
     }
 
     fn write_vectored(&mut self, _bufs: &[IoSlice<'_>]) -> io::Result<usize> {
@@ -32,25 +37,27 @@ impl io::Write for Stdout {
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 
 impl Stderr {
-    pub fn new() -> io::Result<Stderr> { Ok(Stderr(())) }
+    pub fn new() -> io::Result<Stderr> {
+        Ok(Stderr(()))
+    }
 }
 
 impl io::Write for Stderr {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        unimplemented!()
+        Stdout(()).write(buf)
     }
 
     fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
-        unimplemented!()
+        Stdout(()).write_vectored(bufs)
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        unimplemented!()
+        Stdout(()).flush()
     }
 }
 
