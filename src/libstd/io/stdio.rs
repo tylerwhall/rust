@@ -1,4 +1,5 @@
 #![cfg_attr(test, allow(unused))]
+#![allow(missing_docs)]
 
 use crate::io::prelude::*;
 
@@ -397,12 +398,16 @@ impl fmt::Debug for StdinLock<'_> {
 /// [`lock`]: #method.lock
 /// [`io::stdout`]: fn.stdout.html
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub struct Stdout {
     // FIXME: this should be LineWriter or BufWriter depending on the state of
     //        stdout (tty or not). Note that if this is not line buffered it
     //        should also flush-on-panic or some form of flush-on-abort.
     inner: Arc<ReentrantMutex<RefCell<LineWriter<Maybe<StdoutRaw>>>>>,
 }
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub struct Stdout(StdoutRaw);
 
 /// A locked reference to the `Stdout` handle.
 ///
@@ -463,6 +468,7 @@ pub struct StdoutLock<'a> {
 /// }
 /// ```
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn stdout() -> Stdout {
     static INSTANCE: Lazy<ReentrantMutex<RefCell<LineWriter<Maybe<StdoutRaw>>>>> = Lazy::new();
     return Stdout {
@@ -479,6 +485,11 @@ pub fn stdout() -> Stdout {
         };
         Arc::new(ReentrantMutex::new(RefCell::new(LineWriter::new(stdout))))
     }
+}
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub fn stdout() -> Stdout {
+    Stdout(stdout_raw().unwrap())
 }
 
 impl Stdout {
@@ -503,8 +514,14 @@ impl Stdout {
     /// }
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(not(target_os = "zephyr"))]
     pub fn lock(&self) -> StdoutLock<'_> {
         StdoutLock { inner: self.inner.lock().unwrap_or_else(|e| e.into_inner()) }
+    }
+    #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(target_os = "zephyr")]
+    pub fn lock(&self) -> &Self {
+        self
     }
 }
 
@@ -516,6 +533,7 @@ impl fmt::Debug for Stdout {
 }
 
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 impl Write for Stdout {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.lock().write(buf)
@@ -531,6 +549,25 @@ impl Write for Stdout {
     }
     fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> io::Result<()> {
         self.lock().write_fmt(args)
+    }
+}
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+impl Write for Stdout {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.write(buf)
+    }
+    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+        self.0.write_vectored(bufs)
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.0.flush()
+    }
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.0.write_all(buf)
+    }
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> io::Result<()> {
+        self.0.write_fmt(args)
     }
 }
 #[stable(feature = "rust1", since = "1.0.0")]
@@ -799,7 +836,10 @@ where
 #[doc(hidden)]
 #[cfg(not(test))]
 pub fn _print(args: fmt::Arguments<'_>) {
+    #[cfg(not(target_os = "zephyr"))]
     print_to(args, &LOCAL_STDOUT, stdout, "stdout");
+    #[cfg(target_os = "zephyr")]
+    stdout().write_fmt(args).expect("stdout failed");
 }
 
 #[unstable(feature = "print_internals",
