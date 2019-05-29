@@ -449,6 +449,7 @@ pub fn begin_panic_handler(info: &PanicInfo<'_>) -> ! {
 #[cold]
 #[track_caller]
 pub fn begin_panic<M: Any + Send>(msg: M) -> ! {
+    ::zephyr::any::k_str_out("Zephyr panic test message\n");
     if cfg!(feature = "panic_immediate_abort") {
         intrinsics::abort()
     }
