@@ -23,12 +23,13 @@ impl Stdout {
 }
 
 impl io::Write for Stdout {
-    fn write(&mut self, _buf: &[u8]) -> io::Result<usize> {
-        unimplemented!()
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        zephyr_core::any::k_str_out_raw(buf);
+        Ok(buf.len())
     }
 
     fn flush(&mut self) -> io::Result<()> {
-        unimplemented!()
+        Ok(())
     }
 }
 
