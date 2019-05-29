@@ -1,4 +1,5 @@
 #![cfg_attr(test, allow(unused))]
+#![allow(missing_docs)]
 
 #[cfg(test)]
 mod tests;
@@ -524,12 +525,16 @@ impl fmt::Debug for StdinLock<'_> {
 /// [`lock`]: Stdout::lock
 /// [`io::stdout`]: stdout
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub struct Stdout {
     // FIXME: this should be LineWriter or BufWriter depending on the state of
     //        stdout (tty or not). Note that if this is not line buffered it
     //        should also flush-on-panic or some form of flush-on-abort.
     inner: Pin<&'static ReentrantMutex<RefCell<LineWriter<StdoutRaw>>>>,
 }
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub struct Stdout;
 
 /// A locked reference to the [`Stdout`] handle.
 ///
@@ -549,8 +554,17 @@ pub struct Stdout {
 /// standard library or via raw Windows API calls, will fail.
 #[must_use = "if unused stdout will immediately unlock"]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub struct StdoutLock<'a> {
     inner: ReentrantMutexGuard<'a, RefCell<LineWriter<StdoutRaw>>>,
+}
+#[cfg(target_os = "zephyr")]
+use crate::marker::PhantomData;
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub struct StdoutLock<'a> {
+    inner: StdoutRaw,
+    _a: PhantomData<&'a ()>,
 }
 
 static STDOUT: SyncOnceCell<ReentrantMutex<RefCell<LineWriter<StdoutRaw>>>> = SyncOnceCell::new();
@@ -603,6 +617,7 @@ static STDOUT: SyncOnceCell<ReentrantMutex<RefCell<LineWriter<StdoutRaw>>>> = Sy
 /// ```
 #[must_use]
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn stdout() -> Stdout {
     Stdout {
         inner: Pin::static_ref(&STDOUT).get_or_init_pin(
@@ -610,6 +625,11 @@ pub fn stdout() -> Stdout {
             |mutex| unsafe { mutex.init() },
         ),
     }
+}
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+pub fn stdout() -> Stdout {
+    Stdout
 }
 
 pub fn cleanup() {
@@ -647,11 +667,17 @@ impl Stdout {
     /// }
     /// ```
     #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(not(target_os = "zephyr"))]
     pub fn lock(&self) -> StdoutLock<'static> {
         // Locks this handle with 'static lifetime. This depends on the
         // implementation detail that the underlying `ReentrantMutex` is
         // static.
         StdoutLock { inner: self.inner.lock() }
+    }
+    #[stable(feature = "rust1", since = "1.0.0")]
+    #[cfg(target_os = "zephyr")]
+    pub fn lock(&self) -> StdoutLock<'static> {
+        StdoutLock { inner: stdout_raw(), _a: PhantomData::default() }
     }
 }
 
@@ -715,6 +741,7 @@ impl Write for &Stdout {
 }
 
 #[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(not(target_os = "zephyr"))]
 impl Write for StdoutLock<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.inner.borrow_mut().write(buf)
@@ -734,6 +761,30 @@ impl Write for StdoutLock<'_> {
     }
     fn write_all_vectored(&mut self, bufs: &mut [IoSlice<'_>]) -> io::Result<()> {
         self.inner.borrow_mut().write_all_vectored(bufs)
+    }
+}
+
+#[stable(feature = "rust1", since = "1.0.0")]
+#[cfg(target_os = "zephyr")]
+impl Write for StdoutLock<'_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.inner.write(buf)
+    }
+    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+        self.inner.write_vectored(bufs)
+    }
+    #[inline]
+    fn is_write_vectored(&self) -> bool {
+        self.inner.is_write_vectored()
+    }
+    fn flush(&mut self) -> io::Result<()> {
+        self.inner.flush()
+    }
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.inner.write_all(buf)
+    }
+    fn write_all_vectored(&mut self, bufs: &mut [IoSlice<'_>]) -> io::Result<()> {
+        self.inner.write_all_vectored(bufs)
     }
 }
 
