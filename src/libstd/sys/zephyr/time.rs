@@ -19,7 +19,7 @@ impl Instant {
     }
 
     pub fn actually_monotonic() -> bool {
-        false // ?
+        true
     }
 
     pub fn checked_sub_instant(&self, other: &Instant) -> Option<Duration> {
