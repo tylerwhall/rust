@@ -1,30 +1,32 @@
-pub struct Mutex {}
+pub struct Mutex(zephyr::kernel::KMutex);
 
 unsafe impl Send for Mutex {}
 unsafe impl Sync for Mutex {}
 
 impl Mutex {
     pub const fn new() -> Mutex {
-        Mutex {}
+        // Only safe because std boxes this and if we're using k_malloc for box
+        unsafe { Mutex(zephyr::kernel::KMutex::uninit()) }
     }
 
     #[inline]
     pub unsafe fn init(&mut self) {
+        self.0.init()
     }
 
     #[inline]
     pub unsafe fn lock(&self) {
-        unimplemented!()
+        self.0.lock()
     }
 
     #[inline]
     pub unsafe fn unlock(&self) {
-        unimplemented!()
+        self.0.unlock()
     }
 
     #[inline]
     pub unsafe fn try_lock(&self) -> bool {
-        unimplemented!()
+        self.0.try_lock()
     }
 
     #[inline]
