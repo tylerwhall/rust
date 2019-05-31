@@ -470,6 +470,19 @@ impl fmt::Debug for Instant {
     }
 }
 
+#[cfg(target_os = "zephyr")]
+impl Instant {
+    /// Returns this instant's count of Zephyr uptime ticks.
+    ///
+    /// This is the same monotonic tick epoch used by Zephyr's uptime API, not
+    /// milliseconds. The tick frequency is determined by the built image.
+    /// Exposing a primitive keeps private std dependency types out of the API.
+    #[stable(feature = "zephyr_instant_ticks", since = "1.85.0")]
+    pub fn as_zephyr_ticks(&self) -> u64 {
+        (self.0).0.0 as u64
+    }
+}
+
 impl SystemTime {
     /// An anchor in time which can be used to create new `SystemTime` instances or
     /// learn about where in time a `SystemTime` lies.
