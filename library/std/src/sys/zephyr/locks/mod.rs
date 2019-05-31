@@ -4,5 +4,5 @@ mod mutex;
 #[path = "../../unsupported/locks/rwlock.rs"]
 mod rwlock;
 pub use condvar::{Condvar, MovableCondvar};
-pub use mutex::{MovableMutex, Mutex, ReentrantMutex};
+pub use mutex::{MovableMutex, Mutex};
 pub use rwlock::{MovableRwLock, RwLock};
