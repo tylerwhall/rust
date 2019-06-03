@@ -1,8 +1,8 @@
 use crate::time::Duration;
-use zephyr::TimeMs;
+use zephyr::InstantMs;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Instant(zephyr::TimeMs);
+pub struct Instant(InstantMs);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct SystemTime(Duration);
@@ -15,7 +15,7 @@ impl Instant {
     }
 
     pub const fn zero() -> Instant {
-        Instant(TimeMs::zero())
+        Instant(InstantMs::zero())
     }
 
     pub fn actually_monotonic() -> bool {
