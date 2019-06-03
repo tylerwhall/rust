@@ -1,8 +1,9 @@
 use super::unsupported;
+use crate::convert::TryInto;
 use crate::ffi::CStr;
 use crate::io;
 use crate::num::NonZeroUsize;
-use crate::time::Duration;
+use crate::time::{Duration, Instant};
 
 pub struct Thread(!);
 
@@ -26,8 +27,17 @@ impl Thread {
         // nope
     }
 
-    pub fn sleep(_dur: Duration) {
-        unimplemented!()
+    pub fn sleep(dur: Duration) {
+        zephyr_core::any::k_sleep((&dur).try_into().unwrap());
+    }
+
+    // Zephyr has no absolute sleep primitive; like the platforms
+    // documented as "Other", derive the remaining duration and sleep
+    // relatively.
+    pub fn sleep_until(deadline: Instant) {
+        if let Some(dur) = deadline.checked_duration_since(Instant::now()) {
+            Self::sleep(dur)
+        }
     }
 
     pub fn join(self) {
