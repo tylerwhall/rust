@@ -1,3 +1,4 @@
+use crate::convert::TryInto;
 use crate::ffi::CStr;
 use crate::io;
 use crate::sys::{unsupported, Void};
@@ -23,8 +24,8 @@ impl Thread {
         // nope
     }
 
-    pub fn sleep(_dur: Duration) {
-        unimplemented!()
+    pub fn sleep(dur: Duration) {
+        zephyr::any::k_sleep((&dur).try_into().unwrap());
     }
 
     pub fn join(self) {
