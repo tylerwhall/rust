@@ -1,6 +1,8 @@
 use super::key::{Key, LazyKey, get, set};
 use super::{abort_on_dtor_unwind, guard};
-use crate::alloc::{self, GlobalAlloc, Layout, System};
+use crate::alloc::{self, Layout};
+#[cfg(not(target_os = "zephyr"))]
+use crate::alloc::{GlobalAlloc, System};
 use crate::cell::Cell;
 use crate::marker::PhantomData;
 use crate::mem::ManuallyDrop;
@@ -125,6 +127,14 @@ impl<T: 'static, const ALIGN: usize> AlignedSystemBox<T, ALIGN> {
 
         // We use the System allocator here to avoid interfering with a potential
         // Global allocator using thread-local storage.
+        //
+        // Zephyr: images are not required to configure a system heap, so
+        // System (k_malloc/k_aligned_alloc) may not be linkable. Allocate
+        // through the image's #[global_allocator] instead, as std did before
+        // this change upstream.
+        #[cfg(target_os = "zephyr")]
+        let ptr: *mut Value<T> = (unsafe { alloc::alloc(layout) }).cast();
+        #[cfg(not(target_os = "zephyr"))]
         let ptr: *mut Value<T> = (unsafe { System.alloc(layout) }).cast();
         let Some(ptr) = NonNull::new(ptr) else {
             alloc::handle_alloc_error(layout);
@@ -161,6 +171,9 @@ impl<T: 'static, const ALIGN: usize> Drop for AlignedSystemBox<T, ALIGN> {
 
         unsafe {
             let unwind_result = catch_unwind(AssertUnwindSafe(|| self.ptr.drop_in_place()));
+            #[cfg(target_os = "zephyr")]
+            alloc::dealloc(self.ptr.as_ptr().cast(), layout);
+            #[cfg(not(target_os = "zephyr"))]
             System.dealloc(self.ptr.as_ptr().cast(), layout);
             if let Err(payload) = unwind_result {
                 resume_unwind(payload);
