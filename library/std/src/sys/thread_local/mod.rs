@@ -163,6 +163,12 @@ pub(crate) mod key {
             pub(super) use racy::LazyKey;
             pub(super) use sgx::{Key, get, set};
             use sgx::{create, destroy};
+        } else if #[cfg(target_os = "zephyr")] {
+            mod racy;
+            mod zephyr;
+            pub(super) use racy::LazyKey;
+            pub(super) use zephyr::{Key, get, set};
+            use zephyr::{create, destroy};
         } else if #[cfg(target_os = "xous")] {
             mod racy;
             #[cfg(test)]
