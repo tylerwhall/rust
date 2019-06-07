@@ -22,6 +22,7 @@ use crate::io::try_set_output_capture;
 use crate::mem::{self, ManuallyDrop};
 use crate::panic::{BacktraceStyle, PanicHookInfo};
 use crate::sync::atomic::{AtomicBool, Ordering};
+#[cfg(not(target_os = "zephyr"))]
 use crate::sync::{PoisonError, RwLock};
 use crate::sys::backtrace;
 use crate::sys::stdio::panic_output;
@@ -65,11 +66,13 @@ extern "C" fn __rust_foreign_exception() -> ! {
     rtabort!("Rust cannot catch foreign exceptions");
 }
 
+#[cfg(not(target_os = "zephyr"))]
 enum Hook {
     Default,
     Custom(Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>),
 }
 
+#[cfg(not(target_os = "zephyr"))]
 impl Hook {
     #[inline]
     fn into_box(self) -> Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send> {
@@ -80,6 +83,7 @@ impl Hook {
     }
 }
 
+#[cfg(not(target_os = "zephyr"))]
 impl Default for Hook {
     #[inline]
     fn default() -> Hook {
@@ -87,6 +91,7 @@ impl Default for Hook {
     }
 }
 
+#[cfg(not(target_os = "zephyr"))]
 static HOOK: RwLock<Hook> = RwLock::new(Hook::Default);
 
 /// Registers a custom panic hook, replacing the previously registered hook.
@@ -126,6 +131,7 @@ static HOOK: RwLock<Hook> = RwLock::new(Hook::Default);
 /// panic!("Normal panic");
 /// ```
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn set_hook(hook: Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>) {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -138,6 +144,13 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>) {
     // Only drop the old hook after releasing the lock to avoid deadlocking
     // if its destructor panics.
     drop(old);
+}
+
+/// Custom panic hooks are not supported on Zephyr.
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn set_hook(_hook: Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>) {
+    unimplemented!()
 }
 
 /// Unregisters the current panic hook and returns it, registering the default hook
@@ -170,6 +183,7 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send>) {
 /// ```
 #[must_use]
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn take_hook() -> Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send> {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -180,6 +194,13 @@ pub fn take_hook() -> Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send> {
     drop(hook);
 
     old_hook.into_box()
+}
+
+/// Custom panic hooks are not supported on Zephyr.
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn take_hook() -> Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send> {
+    unimplemented!()
 }
 
 /// Atomic combination of [`take_hook`] and [`set_hook`]. Use this to replace the panic handler with
@@ -214,6 +235,7 @@ pub fn take_hook() -> Box<dyn Fn(&PanicHookInfo<'_>) + 'static + Sync + Send> {
 /// panic!("Custom and then normal");
 /// ```
 #[unstable(feature = "panic_update_hook", issue = "92649")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn update_hook<F>(hook_fn: F)
 where
     F: Fn(&(dyn Fn(&PanicHookInfo<'_>) + Send + Sync + 'static), &PanicHookInfo<'_>)
@@ -228,6 +250,19 @@ where
     let mut hook = HOOK.write().unwrap_or_else(PoisonError::into_inner);
     let prev = mem::take(&mut *hook).into_box();
     *hook = Hook::Custom(Box::new(move |info| hook_fn(&prev, info)));
+}
+
+/// Custom panic hooks are not supported on Zephyr.
+#[unstable(feature = "panic_update_hook", issue = "92649")]
+#[cfg(target_os = "zephyr")]
+pub fn update_hook<F>(_hook_fn: F)
+where
+    F: Fn(&(dyn Fn(&PanicHookInfo<'_>) + Send + Sync + 'static), &PanicHookInfo<'_>)
+        + Sync
+        + Send
+        + 'static,
+{
+    unimplemented!()
 }
 
 /// The default panic handler.
@@ -789,6 +824,7 @@ fn rust_panic_with_hook(
         crate::sys::abort_internal();
     }
 
+    #[cfg(not(target_os = "zephyr"))]
     match *HOOK.read().unwrap_or_else(PoisonError::into_inner) {
         // Some platforms (like wasm) know that printing to stderr won't ever actually
         // print anything, and if that's the case we can skip the default
@@ -809,6 +845,9 @@ fn rust_panic_with_hook(
             hook(&PanicHookInfo::new(location, payload.get(), can_unwind, force_no_backtrace));
         }
     }
+
+    #[cfg(target_os = "zephyr")]
+    default_hook(&PanicHookInfo::new(location, payload.get(), can_unwind, force_no_backtrace));
 
     // Indicate that we have finished executing the panic hook. After this point
     // it is fine if there is a panic while executing destructors, as long as it
