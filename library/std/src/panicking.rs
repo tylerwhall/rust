@@ -8,6 +8,7 @@
 //! * Shims around "try"
 
 #![deny(unsafe_op_in_unsafe_fn)]
+#![allow(missing_docs)]
 
 use crate::panic::BacktraceStyle;
 use core::panic::{BoxMeUp, Location, PanicInfo};
@@ -20,8 +21,10 @@ use crate::process;
 use crate::sync::atomic::{AtomicBool, Ordering};
 use crate::sys::stdio::panic_output;
 use crate::sys_common::backtrace;
+#[cfg(not(target_os = "zephyr"))]
 use crate::sys_common::rwlock::StaticRwLock;
 use crate::sys_common::thread_info;
+#[cfg(not(target_os = "zephyr"))]
 use crate::thread;
 
 #[cfg(not(test))]
@@ -71,6 +74,7 @@ extern "C" fn __rust_foreign_exception() -> ! {
     rtabort!("Rust cannot catch foreign exceptions");
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
 enum Hook {
     Default,
@@ -83,7 +87,9 @@ impl Hook {
     }
 }
 
+#[cfg(not(target_os = "zephyr"))]
 static HOOK_LOCK: StaticRwLock = StaticRwLock::new();
+#[cfg(not(target_os = "zephyr"))]
 static mut HOOK: Hook = Hook::Default;
 
 /// Registers a custom panic hook, replacing any that was previously registered.
@@ -120,6 +126,7 @@ static mut HOOK: Hook = Hook::Default;
 /// panic!("Normal panic");
 /// ```
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -143,6 +150,11 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
             }
         }
     }
+}
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn set_hook(_hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
+    unimplemented!()
 }
 
 /// Unregisters the current panic hook, returning it.
@@ -174,6 +186,7 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
 /// ```
 #[must_use]
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -195,6 +208,11 @@ pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
             Hook::Custom(ptr) => Box::from_raw(ptr),
         }
     }
+}
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
+    unimplemented!()
 }
 
 /// Atomic combination of [`take_hook`] and [`set_hook`]. Use this to replace the panic handler with
@@ -229,6 +247,7 @@ pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
 /// panic!("Custom and then normal");
 /// ```
 #[unstable(feature = "panic_update_hook", issue = "92649")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn update_hook<F>(hook_fn: F)
 where
     F: Fn(&(dyn Fn(&PanicInfo<'_>) + Send + Sync + 'static), &PanicInfo<'_>)
@@ -258,6 +277,17 @@ where
         HOOK = Hook::custom(move |info| hook_fn(&prev, info));
         drop(guard);
     }
+}
+#[unstable(feature = "panic_update_hook", issue = "92649")]
+#[cfg(target_os = "zephyr")]
+pub fn update_hook<F>(hook_fn: F)
+where
+    F: Fn(&(dyn Fn(&PanicInfo<'_>) + Send + Sync + 'static), &PanicInfo<'_>)
+        + Sync
+        + Send
+        + 'static,
+{
+    unimplemented!()
 }
 
 fn default_hook(info: &PanicInfo<'_>) {
@@ -612,6 +642,13 @@ pub const fn begin_panic<M: Any + Send>(msg: M) -> ! {
         intrinsics::abort()
     }
 
+    // Note that this should be the only allocation performed in this code path.
+    // Currently this means that panic!() on OOM will invoke this code path,
+    // but then again we're not really ready for panic on OOM anyway. If
+    // we do start doing this, then we should propagate this allocation to
+    // be performed in the parent of this thread instead of the thread that's
+    // panicking.
+
     let loc = Location::caller();
     return crate::sys_common::backtrace::__rust_end_short_backtrace(move || {
         rust_panic_with_hook(&mut PanicPayload::new(msg), None, loc, true)
@@ -682,6 +719,7 @@ fn rust_panic_with_hook(
         crate::sys::abort_internal();
     }
 
+    #[cfg(not(target_os = "zephyr"))]
     unsafe {
         let mut info = PanicInfo::internal_constructor(message, location, can_unwind);
         let _guard = HOOK_LOCK.read();
@@ -702,6 +740,12 @@ fn rust_panic_with_hook(
                 (*ptr)(&info);
             }
         };
+    }
+    #[cfg(target_os = "zephyr")]
+    {
+        let mut info = PanicInfo::internal_constructor(message, location, can_unwind);
+        info.set_payload(payload.get());
+        default_hook(&info);
     }
 
     if panics > 1 || !can_unwind {
