@@ -74,15 +74,15 @@ pub fn env() -> Env {
     panic!("not supported on zephyr")
 }
 
-pub fn getenv(k: &OsStr) -> io::Result<Option<OsString>> {
+pub fn getenv(_k: &OsStr) -> io::Result<Option<OsString>> {
     unsupported()
 }
 
-pub fn setenv(k: &OsStr, v: &OsStr) -> io::Result<()> {
+pub fn setenv(_k: &OsStr, _v: &OsStr) -> io::Result<()> {
     unsupported()
 }
 
-pub fn unsetenv(k: &OsStr) -> io::Result<()> {
+pub fn unsetenv(_k: &OsStr) -> io::Result<()> {
     unsupported()
 }
 

@@ -11,11 +11,11 @@ impl Stdin {
 }
 
 impl io::Read for Stdin {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+    fn read(&mut self, _buf: &mut [u8]) -> io::Result<usize> {
         unimplemented!()
     }
 
-    fn read_vectored(&mut self, bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
+    fn read_vectored(&mut self, _bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
         unimplemented!()
     }
 }
@@ -32,7 +32,7 @@ impl io::Write for Stdout {
         Ok(buf.len())
     }
 
-    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+    fn write_vectored(&mut self, _bufs: &[IoSlice<'_>]) -> io::Result<usize> {
         unimplemented!()
     }
 
@@ -61,7 +61,7 @@ impl io::Write for Stderr {
     }
 }
 
-pub fn is_ebadf(err: &io::Error) -> bool {
+pub fn is_ebadf(_err: &io::Error) -> bool {
     false
 }
 
