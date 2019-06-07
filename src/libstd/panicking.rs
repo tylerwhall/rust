@@ -7,6 +7,8 @@
 //! * Executing a panic up to doing the actual implementation
 //! * Shims around "try"
 
+#![allow(missing_docs)]
+
 use core::panic::{BoxMeUp, PanicInfo, Location};
 
 use crate::any::Any;
@@ -16,9 +18,11 @@ use crate::mem;
 use crate::ptr;
 use crate::raw;
 use crate::sys::stdio::panic_output;
+#[cfg(not(target_os = "zephyr"))]
 use crate::sys_common::rwlock::RWLock;
 use crate::sys_common::thread_info;
 use crate::sys_common::util;
+#[cfg(not(target_os = "zephyr"))]
 use crate::thread;
 
 #[cfg(not(test))]
@@ -48,13 +52,16 @@ extern {
     fn __rust_start_panic(payload: usize) -> u32;
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
 enum Hook {
     Default,
     Custom(*mut (dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send)),
 }
 
+#[cfg(not(target_os = "zephyr"))]
 static HOOK_LOCK: RWLock = RWLock::new();
+#[cfg(not(target_os = "zephyr"))]
 static mut HOOK: Hook = Hook::Default;
 
 /// Registers a custom panic hook, replacing any that was previously registered.
@@ -91,6 +98,7 @@ static mut HOOK: Hook = Hook::Default;
 /// panic!("Normal panic");
 /// ```
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -106,6 +114,11 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
             Box::from_raw(ptr);
         }
     }
+}
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn set_hook(_hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
+    unimplemented!()
 }
 
 /// Unregisters the current panic hook, returning it.
@@ -136,6 +149,7 @@ pub fn set_hook(hook: Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send>) {
 /// panic!("Normal panic");
 /// ```
 #[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(not(target_os = "zephyr"))]
 pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
     if thread::panicking() {
         panic!("cannot modify the panic hook from a panicking thread");
@@ -152,6 +166,11 @@ pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
             Hook::Custom(ptr) => Box::from_raw(ptr),
         }
     }
+}
+#[stable(feature = "panic_hooks", since = "1.10.0")]
+#[cfg(target_os = "zephyr")]
+pub fn take_hook() -> Box<dyn Fn(&PanicInfo<'_>) + 'static + Sync + Send> {
+    unimplemented!()
 }
 
 fn default_hook(info: &PanicInfo<'_>) {
@@ -394,8 +413,9 @@ fn continue_panic_fmt(info: &PanicInfo<'_>) -> ! {
 #[cfg_attr(not(feature="panic_immediate_abort"),inline(never))]
 #[cold]
 pub fn begin_panic<M: Any + Send>(msg: M, file_line_col: &(&'static str, u32, u32)) -> ! {
-    ::zephyr::any::k_str_out("Zephyr panic test message\n");
-    unsafe { intrinsics::abort() }
+    if cfg!(feature = "panic_immediate_abort") {
+        unsafe { intrinsics::abort() }
+    }
 
     // Note that this should be the only allocation performed in this code path.
     // Currently this means that panic!() on OOM will invoke this code path,
@@ -457,11 +477,9 @@ fn rust_panic_with_hook(payload: &mut dyn BoxMeUp,
         unsafe { intrinsics::abort() }
     }
 
+    #[cfg(not(target_os = "zephyr"))]
     unsafe {
-        let mut info = PanicInfo::internal_constructor(
-            message,
-            Location::internal_constructor(file, line, col),
-        );
+        {
         HOOK_LOCK.read();
         match HOOK {
             // Some platforms know that printing to stderr won't ever actually
@@ -478,6 +496,16 @@ fn rust_panic_with_hook(payload: &mut dyn BoxMeUp,
             }
         };
         HOOK_LOCK.read_unlock();
+        }
+    }
+    #[cfg(target_os = "zephyr")]
+    {
+        let mut info = PanicInfo::internal_constructor(
+            message,
+            Location::internal_constructor(file, line, col),
+        );
+        info.set_payload(payload.get());
+        default_hook(&info);
     }
 
     if panics > 1 {
