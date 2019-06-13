@@ -15,6 +15,12 @@ impl Mutex {
 
     #[inline]
     pub unsafe fn init(&mut self) {
+        if zephyr::CONFIG_USERSPACE {
+            // These need to be allocated with k_object_alloc(). Main mutex.rs
+            // puts this in a Box which in not kernel memory when user space is
+            // enabled.
+            unimplemented!()
+        }
         self.0.init::<Context>()
     }
 
