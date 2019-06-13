@@ -14,11 +14,11 @@ pub unsafe fn create(_dtor: Option<unsafe extern fn(*mut u8)>) -> Key {
 
 #[inline]
 unsafe fn get_or_create_tls_area() -> *mut [*mut u8; MAX_KEYS] {
-    let space = zephyr::kernel::k_thread_custom_data_get();
+    let space = zephyr::any::k_thread_custom_data_get();
     let ptr = if space.is_null() {
         let boxed = Box::new([core::ptr::null::<u8>(); MAX_KEYS]);
         let ptr: *mut u8 = Box::into_raw(boxed) as *mut _ as *mut u8;
-        zephyr::kernel::k_thread_custom_data_set(ptr);
+        zephyr::any::k_thread_custom_data_set(ptr);
         ptr
     } else {
         space
