@@ -413,6 +413,14 @@ impl fmt::Debug for Instant {
     }
 }
 
+#[cfg(target_os = "zephyr")]
+#[stable(feature = "time2", since = "1.8.0")]
+impl From<Instant> for zephyr_core::InstantMs {
+    fn from(instant: Instant) -> Self {
+        (instant.0).0
+    }
+}
+
 impl SystemTime {
     /// An anchor in time which can be used to create new `SystemTime` instances or
     /// learn about where in time a `SystemTime` lies.
