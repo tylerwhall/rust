@@ -2,7 +2,7 @@ use crate::time::Duration;
 use zephyr::InstantMs;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Instant(InstantMs);
+pub struct Instant(pub InstantMs);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct SystemTime(Duration);
