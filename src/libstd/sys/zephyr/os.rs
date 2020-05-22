@@ -11,7 +11,7 @@ pub fn errno() -> i32 {
 }
 
 pub fn error_string(errno: i32) -> String {
-    format!("errno {}", errno)
+    "".into()
 }
 
 pub fn current_exe() -> io::Result<PathBuf> {

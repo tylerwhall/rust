@@ -552,4 +552,5 @@ include!("primitive_docs.rs");
 // because rustdoc only looks for these modules at the crate level.
 include!("keyword_docs.rs");
 
+#[cfg(target_os = "zephyr")]
 extern crate zephyr_core as zephyr;
