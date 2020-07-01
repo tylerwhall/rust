@@ -415,7 +415,7 @@ impl fmt::Debug for Instant {
 
 #[cfg(target_os = "zephyr")]
 #[stable(feature = "time2", since = "1.8.0")]
-impl From<Instant> for zephyr_core::InstantMs {
+impl From<Instant> for zephyr_core::Ticks {
     fn from(instant: Instant) -> Self {
         (instant.0).0
     }

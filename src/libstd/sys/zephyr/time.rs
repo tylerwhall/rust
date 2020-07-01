@@ -1,8 +1,8 @@
 use crate::time::Duration;
-use zephyr::InstantMs;
+use zephyr::Ticks;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct Instant(pub InstantMs);
+pub struct Instant(pub Ticks);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct SystemTime(Duration);
@@ -11,11 +11,11 @@ pub const UNIX_EPOCH: SystemTime = SystemTime(Duration::from_secs(0));
 
 impl Instant {
     pub fn now() -> Instant {
-        Instant(zephyr::any::k_uptime_get_ms())
+        Instant(zephyr::any::k_uptime_ticks())
     }
 
     pub const fn zero() -> Instant {
-        Instant(InstantMs::zero())
+        Instant(Ticks(0))
     }
 
     pub fn actually_monotonic() -> bool {
