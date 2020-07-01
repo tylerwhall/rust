@@ -10,7 +10,7 @@ pub fn errno() -> i32 {
     unimplemented!()
 }
 
-pub fn error_string(errno: i32) -> String {
+pub fn error_string(_errno: i32) -> String {
     "".into()
 }
 
