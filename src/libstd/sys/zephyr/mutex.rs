@@ -1,46 +1,52 @@
-use zephyr::context::Kernel as Context;
-use zephyr::mutex::*;
-use zephyr::mutex::global::k_mutex;
+use core::cell::UnsafeCell;
+use core::mem::MaybeUninit;
+use core::ptr;
 
-pub struct Mutex(k_mutex);
+use zephyr::context::Any as Context;
+use zephyr::mutex::*;
+use zephyr::mutex_alloc::DynMutex;
+
+pub struct Mutex(UnsafeCell<MaybeUninit<DynMutex>>);
 
 unsafe impl Send for Mutex {}
 unsafe impl Sync for Mutex {}
 
 impl Mutex {
     pub const fn new() -> Mutex {
-        // Only safe because std boxes this and if we're using k_malloc for box
-        unsafe { Mutex(k_mutex::uninit()) }
+        Mutex(UnsafeCell::new(MaybeUninit::uninit()))
+    }
+
+    unsafe fn as_ref(&self) -> &DynMutex {
+        &*(*self.0.get()).as_ptr()
+    }
+
+    unsafe fn as_mut_ptr(&self) -> *mut DynMutex {
+        (*self.0.get()).as_mut_ptr()
     }
 
     #[inline]
     pub unsafe fn init(&self) {
-        if zephyr::CONFIG_USERSPACE {
-            // These need to be allocated with k_object_alloc(). Main mutex.rs
-            // puts this in a Box which in not kernel memory when user space is
-            // enabled.
-            unimplemented!()
-        }
-        self.0.init::<Context>()
+        *self.0.get() = MaybeUninit::new(DynMutex::new::<Context>().expect("mutex alloc"))
     }
 
     #[inline]
     pub unsafe fn lock(&self) {
-        self.0.lock::<Context>()
+        self.as_ref().lock::<Context>()
     }
 
     #[inline]
     pub unsafe fn unlock(&self) {
-        self.0.unlock::<Context>()
+        self.as_ref().unlock::<Context>()
     }
 
     #[inline]
     pub unsafe fn try_lock(&self) -> bool {
-        self.0.try_lock::<Context>()
+        self.as_ref().try_lock::<Context>()
     }
 
     #[inline]
     pub unsafe fn destroy(&self) {
+        ptr::drop_in_place(self.as_mut_ptr());
     }
 }
 
@@ -48,7 +54,7 @@ pub struct ReentrantMutex {}
 
 impl ReentrantMutex {
     pub const fn uninitialized() -> ReentrantMutex {
-        ReentrantMutex { }
+        ReentrantMutex {}
     }
 
     #[inline]
