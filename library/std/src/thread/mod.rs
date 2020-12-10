@@ -163,7 +163,9 @@ use crate::cell::UnsafeCell;
 use crate::ffi::CStr;
 use crate::marker::PhantomData;
 use crate::mem::{self, ManuallyDrop, forget};
-use crate::num::NonZero;
+use crate::num::{NonZero, NonZeroU32, NonZeroU64};
+use crate::sync::atomic::AtomicU32;
+use crate::sync::atomic::Ordering::Relaxed;
 use crate::pin::Pin;
 use crate::sync::Arc;
 use crate::sync::atomic::{Atomic, AtomicUsize, Ordering};
@@ -1183,56 +1185,24 @@ pub fn park_timeout(dur: Duration) {
 /// [`id`]: Thread::id
 #[stable(feature = "thread_id", since = "1.19.0")]
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
-pub struct ThreadId(NonZero<u64>);
+pub struct ThreadId(NonZeroU32);
 
 impl ThreadId {
     // Generate a new unique thread ID.
     pub(crate) fn new() -> ThreadId {
-        #[cold]
-        fn exhausted() -> ! {
-            panic!("failed to generate unique thread ID: bitspace exhausted")
+        static COUNTER: AtomicU32 = AtomicU32::new(1);
+        let id = COUNTER.fetch_add(1, Relaxed);
+        // If we somehow use up all our bits, panic so that we're not
+        // covering up subtle bugs of IDs being reused.
+        if id == 0 {
+            panic!("failed to generate unique thread ID: bitspace exhausted");
         }
-
-        cfg_if::cfg_if! {
-            if #[cfg(target_has_atomic = "64")] {
-                use crate::sync::atomic::{Atomic, AtomicU64};
-
-                static COUNTER: Atomic<u64> = AtomicU64::new(0);
-
-                let mut last = COUNTER.load(Ordering::Relaxed);
-                loop {
-                    let Some(id) = last.checked_add(1) else {
-                        exhausted();
-                    };
-
-                    match COUNTER.compare_exchange_weak(last, id, Ordering::Relaxed, Ordering::Relaxed) {
-                        Ok(_) => return ThreadId(NonZero::new(id).unwrap()),
-                        Err(id) => last = id,
-                    }
-                }
-            } else {
-                use crate::sync::{Mutex, PoisonError};
-
-                static COUNTER: Mutex<u64> = Mutex::new(0);
-
-                let mut counter = COUNTER.lock().unwrap_or_else(PoisonError::into_inner);
-                let Some(id) = counter.checked_add(1) else {
-                    // in case the panic handler ends up calling `ThreadId::new()`,
-                    // avoid reentrant lock acquire.
-                    drop(counter);
-                    exhausted();
-                };
-
-                *counter = id;
-                drop(counter);
-                ThreadId(NonZero::new(id).unwrap())
-            }
-        }
+        ThreadId(NonZeroU32::new(id).unwrap())
     }
 
     #[cfg(any(not(target_thread_local), target_has_atomic = "64"))]
     fn from_u64(v: u64) -> Option<ThreadId> {
-        NonZero::new(v).map(ThreadId)
+        u32::try_from(v).ok().and_then(NonZeroU32::new).map(ThreadId)
     }
 
     /// This returns a numeric identifier for the thread identified by this
@@ -1245,8 +1215,8 @@ impl ThreadId {
     /// change across Rust versions.
     #[must_use]
     #[unstable(feature = "thread_id_value", issue = "67939")]
-    pub fn as_u64(&self) -> NonZero<u64> {
-        self.0
+    pub fn as_u64(&self) -> NonZeroU64 {
+        self.0.into()
     }
 }
 
