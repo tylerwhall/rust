@@ -161,13 +161,15 @@ use crate::fmt;
 use crate::io;
 use crate::marker::PhantomData;
 use crate::mem;
-use crate::num::NonZeroU64;
+use crate::num::{NonZeroU32, NonZeroU64};
 use crate::num::NonZeroUsize;
 use crate::panic;
 use crate::panicking;
 use crate::pin::Pin;
 use crate::ptr::addr_of_mut;
 use crate::str;
+use crate::sync::atomic::AtomicU32;
+use crate::sync::atomic::Ordering::Relaxed;
 use crate::sync::Arc;
 use crate::sys::thread as imp;
 use crate::sys_common::thread;
@@ -1037,7 +1039,7 @@ pub fn park_timeout(dur: Duration) {
 /// [`id`]: Thread::id
 #[stable(feature = "thread_id", since = "1.19.0")]
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
-pub struct ThreadId(NonZeroU64);
+pub struct ThreadId(NonZeroU32);
 
 impl ThreadId {
     // Generate a new unique thread ID.
@@ -1047,44 +1049,14 @@ impl ThreadId {
             panic!("failed to generate unique thread ID: bitspace exhausted")
         }
 
-        cfg_if::cfg_if! {
-            if #[cfg(target_has_atomic = "64")] {
-                use crate::sync::atomic::{AtomicU64, Ordering::Relaxed};
-
-                static COUNTER: AtomicU64 = AtomicU64::new(0);
-
-                let mut last = COUNTER.load(Relaxed);
-                loop {
-                    let Some(id) = last.checked_add(1) else {
-                        exhausted();
-                    };
-
-                    match COUNTER.compare_exchange_weak(last, id, Relaxed, Relaxed) {
-                        Ok(_) => return ThreadId(NonZeroU64::new(id).unwrap()),
-                        Err(id) => last = id,
-                    }
-                }
-            } else {
-                use crate::sys_common::mutex::StaticMutex;
-
-                // It is UB to attempt to acquire this mutex reentrantly!
-                static GUARD: StaticMutex = StaticMutex::new();
-                static mut COUNTER: u64 = 0;
-
-                unsafe {
-                    let guard = GUARD.lock();
-
-                    let Some(id) = COUNTER.checked_add(1) else {
-                        drop(guard); // in case the panic handler ends up calling `ThreadId::new()`, avoid reentrant lock acquire.
-                        exhausted();
-                    };
-
-                    COUNTER = id;
-                    drop(guard);
-                    ThreadId(NonZeroU64::new(id).unwrap())
-                }
-            }
+        static COUNTER: AtomicU32 = AtomicU32::new(1);
+        let id = COUNTER.fetch_add(1, Relaxed);
+        // If we somehow use up all our bits, panic so that we're not
+        // covering up subtle bugs of IDs being reused.
+        if id == 0 {
+            panic!("failed to generate unique thread ID: bitspace exhausted");
         }
+        ThreadId(NonZeroU32::new(id).unwrap())
     }
 
     /// This returns a numeric identifier for the thread identified by this
@@ -1098,7 +1070,7 @@ impl ThreadId {
     #[must_use]
     #[unstable(feature = "thread_id_value", issue = "67939")]
     pub fn as_u64(&self) -> NonZeroU64 {
-        self.0
+        self.0.into()
     }
 }
 
