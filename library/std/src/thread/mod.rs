@@ -154,13 +154,14 @@ use crate::ffi::{CStr, CString};
 use crate::fmt;
 use crate::io;
 use crate::mem;
-use crate::num::NonZeroU64;
+use crate::num::{NonZeroU32, NonZeroU64};
 use crate::panic;
 use crate::panicking;
 use crate::str;
+use crate::sync::atomic::AtomicU32;
+use crate::sync::atomic::Ordering::Relaxed;
 use crate::sync::Arc;
 use crate::sys::thread as imp;
-use crate::sys_common::mutex;
 use crate::sys_common::thread;
 use crate::sys_common::thread_info;
 use crate::sys_common::thread_parker::Parker;
@@ -977,29 +978,20 @@ pub fn park_timeout(dur: Duration) {
 /// [`id`]: Thread::id
 #[stable(feature = "thread_id", since = "1.19.0")]
 #[derive(Eq, PartialEq, Clone, Copy, Hash, Debug)]
-pub struct ThreadId(NonZeroU64);
+pub struct ThreadId(NonZeroU32);
 
 impl ThreadId {
     // Generate a new unique thread ID.
     fn new() -> ThreadId {
-        // It is UB to attempt to acquire this mutex reentrantly!
-        static GUARD: mutex::StaticMutex = mutex::StaticMutex::new();
-        static mut COUNTER: u64 = 1;
+        static COUNTER: AtomicU32 = AtomicU32::new(1);
 
-        unsafe {
-            let _guard = GUARD.lock();
-
-            // If we somehow use up all our bits, panic so that we're not
-            // covering up subtle bugs of IDs being reused.
-            if COUNTER == u64::MAX {
-                panic!("failed to generate unique thread ID: bitspace exhausted");
-            }
-
-            let id = COUNTER;
-            COUNTER += 1;
-
-            ThreadId(NonZeroU64::new(id).unwrap())
+        let id = COUNTER.fetch_add(1, Relaxed);
+        // If we somehow use up all our bits, panic so that we're not
+        // covering up subtle bugs of IDs being reused.
+        if id == 0 {
+            panic!("failed to generate unique thread ID: bitspace exhausted");
         }
+        ThreadId(NonZeroU32::new(id).unwrap())
     }
 
     /// This returns a numeric identifier for the thread identified by this
@@ -1012,7 +1004,7 @@ impl ThreadId {
     /// change across Rust versions.
     #[unstable(feature = "thread_id_value", issue = "67939")]
     pub fn as_u64(&self) -> NonZeroU64 {
-        self.0
+        self.0.into()
     }
 }
 
