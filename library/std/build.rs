@@ -45,6 +45,7 @@ fn main() {
         || target_os == "vita"
         || target_os == "aix"
         || target_os == "nto"
+        || target_os == "zephyr"
         || target_os == "xous"
         || target_os == "hurd"
         || target_os == "uefi"
