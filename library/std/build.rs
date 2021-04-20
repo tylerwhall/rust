@@ -32,6 +32,7 @@ fn main() {
         || target.contains("vita")
         || target.contains("aix")
         || target.contains("nto")
+        || target.contains("zephyr")
         || target.contains("xous")
         || target.contains("hurd")
         || target.contains("uefi")
