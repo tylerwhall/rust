@@ -13,6 +13,7 @@ cfg_if::cfg_if! {
         mod futex;
         pub use futex::Parker;
     } else if #[cfg(any(
+        target_os = "zephyr",
         target_os = "netbsd",
         all(target_vendor = "fortanix", target_env = "sgx"),
         target_os = "solid_asp3",
