@@ -1,5 +1,6 @@
 #[path = "../unsupported/os.rs"]
 pub mod os;
+pub mod thread_parking;
 pub mod time;
 
 #[path = "../unsupported/common.rs"]
