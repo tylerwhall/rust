@@ -7,6 +7,7 @@ pub mod os;
 #[path = "../unsupported/pipe.rs"]
 pub mod pipe;
 pub mod thread;
+pub mod thread_parking;
 pub mod time;
 
 #[path = "../unsupported/common.rs"]
