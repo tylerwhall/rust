@@ -15,6 +15,7 @@ cfg_select! {
         pub use futex::Parker;
     }
     any(
+        target_os = "zephyr",
         target_os = "netbsd",
         all(target_vendor = "fortanix", target_env = "sgx"),
         target_os = "solid_asp3",
