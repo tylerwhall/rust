@@ -2,6 +2,11 @@ pub fn errno() -> i32 {
     0
 }
 
+#[inline]
+pub fn is_interrupted(errno: i32) -> bool {
+    errno as u32 == zephyr_sys::raw::EINTR
+}
+
 pub fn decode_error_kind(errno: i32) -> crate::io::ErrorKind {
     use crate::io::ErrorKind;
 
