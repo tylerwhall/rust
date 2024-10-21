@@ -18,6 +18,11 @@ use zephyr_core::any as zephyr;
 
 pub use libc::strlen;
 
+#[inline]
+pub(crate) fn is_interrupted(errno: i32) -> bool {
+    errno as u32 == zephyr_sys::raw::EINTR
+}
+
 pub fn decode_error_kind(errno: i32) -> crate::io::ErrorKind {
     match errno as u32 {
         zephyr_sys::raw::ECONNREFUSED => ErrorKind::ConnectionRefused,
