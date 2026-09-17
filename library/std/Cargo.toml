@@ -22,8 +22,8 @@ profiler_builtins = { path = "../profiler_builtins", optional = true }
 unwind = { path = "../unwind" }
 hashbrown = { version = "0.14", default-features = false, features = ['rustc-dep-of-std'] }
 std_detect = { path = "../stdarch/crates/std_detect", default-features = false, features = ['rustc-dep-of-std'] }
-zephyr-sys = { path = "../../../zephyr-sys" }
-zephyr-core = { path = "../../../zephyr-core", features = ["rustc-dep-of-std"]  }
+zephyr-sys = { path = "../../../zephyr-sys", public = true }
+zephyr-core = { path = "../../../zephyr-core", features = ["rustc-dep-of-std"], public = true }
 
 # Dependencies of the `backtrace` crate
 rustc-demangle = { version = "0.1.24", features = ['rustc-dep-of-std'] }
