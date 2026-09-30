@@ -7,7 +7,6 @@ pub mod args;
 pub mod cmath;
 #[path = "../unsupported/fs.rs"]
 pub mod fs;
-pub mod locks;
 #[path = "../unsupported/os.rs"]
 pub mod os;
 #[path = "../../os_str/mod.rs"]
