@@ -9,7 +9,6 @@ pub mod cmath;
 pub mod fs;
 #[path = "../unsupported/io.rs"]
 pub mod io;
-pub mod locks;
 #[path = "../unsupported/net.rs"]
 pub mod net;
 #[path = "../unsupported/os.rs"]
