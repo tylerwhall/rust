@@ -26,8 +26,8 @@ hashbrown = { version = "0.15", default-features = false, features = [
 std_detect = { path = "../stdarch/crates/std_detect", default-features = false, features = [
     'rustc-dep-of-std',
 ] }
-zephyr-sys = { path = "../../../zephyr-sys", public = true }
-zephyr-core = { path = "../../../zephyr-core", features = ["rustc-dep-of-std"], public = true }
+zephyr-sys = { path = "../../../zephyr-sys" }
+zephyr-core = { path = "../../../zephyr-core", features = ["rustc-dep-of-std"] }
 
 # Dependencies of the `backtrace` crate
 rustc-demangle = { version = "0.1.24", features = ['rustc-dep-of-std'] }
